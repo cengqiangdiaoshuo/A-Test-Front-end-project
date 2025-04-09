@@ -1,187 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>横版冒险游戏</title>
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <title>星期图片显示</title>
     <style>
         body {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             background-color: #f0f0f0;
         }
 
-        #game-container {
-            position: relative;
-            width: 800px;
-            height: 400px;
-            border: 2px solid #333;
-            background-color: #e0f7fa;
-            overflow: hidden;
-        }
-
-        #player {
-            position: absolute;
-            bottom: 0;
-            left: 50px;
-            width: 50px;
-            height: 50px;
-            background-color: #ff9800;
-            transition: bottom 0.5s ease;
-        }
-
-        #player::after {
-            content: '老鱼';
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 12px;
-        }
-
-        .obstacle {
-            position: absolute;
-            bottom: 0;
-            width: 30px;
-            background-color: #e53935;
-        }
-
-        .obstacle::after {
-            content: '涩图';
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 12px;
-        }
-
-        #score {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        #game-over-modal {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        #image-container {
             text-align: center;
+        }
+
+        img {
+            max-width: 80vw;
+            max-height: 80vh;
+            display: block;
+            margin: 0 auto;
+            border: 5px solid #333;
+            border-radius: 10px;
         }
     </style>
 </head>
 
 <body>
-    <div id="game-container">
-        <div id="player"></div>
-        <div id="score">得分: 0</div>
-        <div id="game-over-modal">
-            <p id="final-score"></p>
-            <button onclick="restartGame()">重新开始</button>
-        </div>
+    <div id="image-container">
+        <img src="" alt="星期图片" id="day-image">
     </div>
+
     <script>
-        const gameContainer = document.getElementById('game-container');
-        const player = document.getElementById('player');
-        const scoreElement = document.getElementById('score');
-        const gameOverModal = document.getElementById('game-over-modal');
-        const finalScoreElement = document.getElementById('final-score');
+        function getBeijingTime() {
+    return new Promise((resolve, reject) => {
+        fetch('https://worldtimeapi.org/api/timezone/Asia/Shanghai')
+          .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应不正常');
+                }
+                return response.json();
+            })
+          .then(data => {
+                const beijingTime = new Date(data.datetime);
+                resolve(beijingTime);
+            })
+          .catch(error => {
+                reject(error);
+            });
+    });
+}
 
-        let score = 0;
-        let isJumping = false;
-        let gameOver = false;
-        let obstacleSpeed = 5;
+        // 定义星期对应的图片文件名（注意：getDay()返回0为周日，1 - 6为周一到周六）
+        const weekImages = [
+            'sun.jpg',  // 0: 周日
+            'mon.jpg',  // 1: 周一
+            'tue.jpg',  // 2: 周二
+            'wed.jpg',  // 3: 周三
+            'thu.jpg',  // 4: 周四
+            'fri.jpg',  // 5: 周五
+            'sat.jpg'   // 6: 周六
+        ];
 
-        // 鼠标点击事件控制跳跃
-        gameContainer.addEventListener('click', () => {
-            if (!isJumping && !gameOver) {
-                jump();
+        getBeijingTime().then((now) => {
+    const dayOfWeek = now.getDay();
+    const imagePath = `images/${weekImages[dayOfWeek]}`;
+    const imageElement = document.getElementById('day-image');
+    imageElement.src = imagePath;
+    imageElement.alt = `星期${dayOfWeek === 0 ? '日' : dayOfWeek}图片`;
+
+    setInterval(() => {
+        getBeijingTime().then((newNow) => {
+            const newDay = newNow.getDay();
+            if (newDay !== dayOfWeek) {
+                window.location.reload();
             }
         });
-
-        function jump() {
-            isJumping = true;
-            player.style.bottom = '150px';
-            setTimeout(() => {
-                player.style.bottom = '0';
-                isJumping = false;
-            }, 500);
-        }
-
-        function createObstacle() {
-            const obstacle = document.createElement('div');
-            obstacle.classList.add('obstacle');
-            obstacle.style.left = '800px';
-            // 设置障碍物高度为合理范围内的随机值
-            const minHeight = 20;
-            const maxHeight = 100;
-            const randomHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
-            obstacle.style.height = randomHeight + 'px';
-            gameContainer.appendChild(obstacle);
-
-            const moveInterval = setInterval(() => {
-                const obstacleLeft = parseInt(obstacle.style.left);
-                obstacle.style.left = (obstacleLeft - obstacleSpeed) + 'px';
-
-                if (isCollision(player, obstacle)) {
-                    clearInterval(moveInterval);
-                    gameOver = true;
-                    endGame();
-                } else if (obstacleLeft < -30) {
-                    clearInterval(moveInterval);
-                    gameContainer.removeChild(obstacle);
-                    score++;
-                    scoreElement.textContent = `得分: ${score}`;
-                    if (score % 5 === 0) {
-                        obstacleSpeed += 1;
-                    }
-                    createObstacle();
-                }
-            }, 20);
-        }
-
-        function isCollision(element1, element2) {
-            const rect1 = element1.getBoundingClientRect();
-            const rect2 = element2.getBoundingClientRect();
-            return (
-                rect1.left < rect2.right &&
-                rect1.right > rect2.left &&
-                rect1.top < rect2.bottom &&
-                rect1.bottom > rect2.top
-            );
-        }
-
-        function endGame() {
-            gameOverModal.style.display = 'block';
-            finalScoreElement.textContent = `你获得了 ${score} 分！`;
-        }
-
-        function restartGame() {
-            score = 0;
-            scoreElement.textContent = `得分: ${score}`;
-            gameOver = false;
-            gameOverModal.style.display = 'none';
-            obstacleSpeed = 5;
-            const obstacles = document.querySelectorAll('.obstacle');
-            obstacles.forEach(obstacle => gameContainer.removeChild(obstacle));
-            createObstacle();
-        }
-
-        // 游戏开始，创建第一个障碍
-        createObstacle();
+    }, 1000);
+}).catch((error) => {
+    console.error('获取北京时间失败:', error);
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const imagePath = `images/${weekImages[dayOfWeek]}`;
+    const imageElement = document.getElementById('day-image');
+    imageElement.src = imagePath;
+    imageElement.alt = `星期${dayOfWeek === 0 ? '日' : dayOfWeek}图片`;
+});
     </script>
 </body>
 
