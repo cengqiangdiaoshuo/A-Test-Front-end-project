@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星期图片显示</title>
+    <title>鱼群day查看器</title>
     <style>
         body {
             display: flex;
@@ -29,33 +28,13 @@
         }
     </style>
 </head>
-
 <body>
     <div id="image-container">
         <img src="" alt="星期图片" id="day-image">
     </div>
 
     <script>
-        function getBeijingTime() {
-    return new Promise((resolve, reject) => {
-        fetch('https://worldtimeapi.org/api/timezone/Asia/Shanghai')
-          .then(response => {
-                if (!response.ok) {
-                    throw new Error('网络响应不正常');
-                }
-                return response.json();
-            })
-          .then(data => {
-                const beijingTime = new Date(data.datetime);
-                resolve(beijingTime);
-            })
-          .catch(error => {
-                reject(error);
-            });
-    });
-}
-
-        // 定义星期对应的图片文件名（注意：getDay()返回0为周日，1 - 6为周一到周六）
+        // 定义星期对应的图片文件名（注意：getDay()返回0为周日，1-6为周一到周六）
         const weekImages = [
             'sun.jpg',  // 0: 周日
             'mon.jpg',  // 1: 周一
@@ -66,32 +45,26 @@
             'sat.jpg'   // 6: 周六
         ];
 
-        getBeijingTime().then((now) => {
-    const dayOfWeek = now.getDay();
-    const imagePath = `images/${weekImages[dayOfWeek]}`;
-    const imageElement = document.getElementById('day-image');
-    imageElement.src = imagePath;
-    imageElement.alt = `星期${dayOfWeek === 0 ? '日' : dayOfWeek}图片`;
+        // 获取当前时间
+        const now = new Date();
+        const dayOfWeek = now.getDay();  // 0-6对应周日到周六
 
-    setInterval(() => {
-        getBeijingTime().then((newNow) => {
+        // 构建图片路径（假设图片放在当前目录的images文件夹中）
+        const imagePath = `images/${weekImages[dayOfWeek]}`;
+
+        // 设置图片
+        const imageElement = document.getElementById('day-image');
+        imageElement.src = imagePath;
+        imageElement.alt = `星期${dayOfWeek === 0 ? '日' : dayOfWeek}图片`;
+
+        // 可选：实时更新时间（每秒钟检查一次，防止时区变化等问题）
+        setInterval(() => {
+            const newNow = new Date();
             const newDay = newNow.getDay();
             if (newDay !== dayOfWeek) {
-                window.location.reload();
+                window.location.reload();  // 当天变化时刷新页面
             }
-        });
-    }, 1000);
-}).catch((error) => {
-    console.error('获取北京时间失败:', error);
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const imagePath = `images/${weekImages[dayOfWeek]}`;
-    const imageElement = document.getElementById('day-image');
-    imageElement.src = imagePath;
-    imageElement.alt = `星期${dayOfWeek === 0 ? '日' : dayOfWeek}图片`;
-});
+        }, 1000);
     </script>
 </body>
-
 </html>
-    
