@@ -1,70 +1,140 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>鱼群day查看器</title>
+    <title>太阳系天体运动模拟</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
     <style>
         body {
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            background-color: #000;
         }
 
-        #image-container {
-            text-align: center;
+        #solar-system {
+            position: relative;
+            width: 800px;
+            height: 800px;
         }
 
-        img {
-            max-width: 80vw;
-            max-height: 80vh;
-            display: block;
-            margin: 0 auto;
-            border: 5px solid #333;
-            border-radius: 10px;
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            transform-origin: center;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .orbit {
+            position: absolute;
+            border: 1px dashed rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            filter: blur(2px);
+        }
+
+        .trail {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .planet:hover {
+            transform: scale(1.2);
         }
     </style>
 </head>
-<body>
-    <div id="image-container">
-        <img src="" alt="星期图片" id="day-image">
-    </div>
 
+<body>
+    <div id="solar-system"></div>
     <script>
-        // 定义星期对应的图片文件名（注意：getDay()返回0为周日，1-6为周一到周六）
-        const weekImages = [
-            'sun.jpg',  // 0: 周日
-            'mon.jpg',  // 1: 周一
-            'tue.jpg',  // 2: 周二
-            'wed.jpg',  // 3: 周三
-            'thu.jpg',  // 4: 周四
-            'fri.jpg',  // 5: 周五
-            'sat.jpg'   // 6: 周六
+        const solarSystem = document.getElementById('solar-system');
+
+        // 太阳
+        const sun = document.createElement('div');
+        sun.classList.add('planet');
+        sun.style.width = '80px';
+        sun.style.height = '80px';
+        sun.style.backgroundColor = 'rgba(255, 215, 0, 0.9)';
+        sun.style.left = '50%';
+        sun.style.top = '50%';
+        sun.style.transform = 'translate(-50%, -50%)';
+        solarSystem.appendChild(sun);
+
+        // 行星数据
+        const planetsData = [
+            { name: '水星', radius: 6, distance: 100, speed: 0.015, color: '#8B4513' },
+            { name: '金星', radius: 8, distance: 140, speed: 0.012, color: '#FFD700' },
+            { name: '地球', radius: 10, distance: 180, speed: 0.009, color: '#007BFF' },
+            { name: '火星', radius: 8, distance: 220, speed: 0.007, color: '#FF0000' },
+            { name: '木星', radius: 24, distance: 280, speed: 0.003, color: '#FFA500' },
+            { name: '土星', radius: 22, distance: 340, speed: 0.002, color: '#FFFFE0' },
+            { name: '天王星', radius: 16, distance: 400, speed: 0.0015, color: '#00FFFF' },
+            { name: '海王星', radius: 16, distance: 460, speed: 0.0012, color: '#1E90FF' }
         ];
 
-        // 获取当前时间
-        const now = new Date();
-        const dayOfWeek = now.getDay();  // 0-6对应周日到周六
+        const planets = [];
+        const maxTrailPoints = 200;
 
-        // 构建图片路径（假设图片放在当前目录的images文件夹中）
-        const imagePath = `images/${weekImages[dayOfWeek]}`;
+        planetsData.forEach((planetData, index) => {
+            // 创建行星轨道
+            const orbit = document.createElement('div');
+            orbit.classList.add('orbit');
+            orbit.style.width = planetData.distance * 2 + 'px';
+            orbit.style.height = planetData.distance * 2 + 'px';
+            orbit.style.left = '50%';
+            orbit.style.top = '50%';
+            orbit.style.transform = 'translate(-50%, -50%)';
+            solarSystem.appendChild(orbit);
 
-        // 设置图片
-        const imageElement = document.getElementById('day-image');
-        imageElement.src = imagePath;
-        imageElement.alt = `星期${dayOfWeek === 0 ? '日' : dayOfWeek}图片`;
+            // 创建行星
+            const planet = document.createElement('div');
+            planet.classList.add('planet');
+            planet.style.width = planetData.radius * 2 + 'px';
+            planet.style.height = planetData.radius * 2 + 'px';
+            planet.style.backgroundColor = planetData.color;
+            planet.angle = 0;
+            planet.speed = planetData.speed;
+            planet.distance = planetData.distance;
+            planet.trails = [];
+            solarSystem.appendChild(planet);
+            planets.push(planet);
+        });
 
-        // 可选：实时更新时间（每秒钟检查一次，防止时区变化等问题）
-        setInterval(() => {
-            const newNow = new Date();
-            const newDay = newNow.getDay();
-            if (newDay !== dayOfWeek) {
-                window.location.reload();  // 当天变化时刷新页面
-            }
-        }, 1000);
+        function animatePlanets() {
+            planets.forEach(planet => {
+                planet.angle += planet.speed;
+                const x = Math.cos(planet.angle) * planet.distance + solarSystem.offsetWidth / 2 - planet.offsetWidth / 2;
+                const y = Math.sin(planet.angle) * planet.distance + solarSystem.offsetHeight / 2 - planet.offsetHeight / 2;
+                planet.style.left = x + 'px';
+                planet.style.top = y + 'px';
+
+                // 创建轨迹点
+                const trail = document.createElement('div');
+                trail.classList.add('trail');
+                trail.style.left = x + 'px';
+                trail.style.top = y + 'px';
+                solarSystem.appendChild(trail);
+                planet.trails.push(trail);
+
+                // 控制轨迹点数量
+                if (planet.trails.length > maxTrailPoints) {
+                    const removedTrail = planet.trails.shift();
+                    solarSystem.removeChild(removedTrail);
+                }
+            });
+            requestAnimationFrame(animatePlanets);
+        }
+
+        animatePlanets();
     </script>
 </body>
-</html>
+
+</html>    
